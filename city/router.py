@@ -4,7 +4,8 @@ from db.engine import SessionLocal
 from . import crud, schemas
 
 
-router = APIRouter(prefix="/cities", tags=["cites"])
+router = APIRouter(prefix="/cities", tags=["cities"])
+
 
 def get_db():
     db = SessionLocal()
@@ -14,7 +15,7 @@ def get_db():
         db.close()
 
 
-@router.post("/", response_model=list[schemas.City])
+@router.post("/", response_model=schemas.City)
 def create_city(city: schemas.CityCreate, db: Session = Depends(get_db)):
     return crud.create_city(db, city)
 
@@ -31,9 +32,20 @@ def read_city(city_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="City not found")
     return city
 
+
 @router.delete("/{city_id}")
 def delete_city(city_id: int, db: Session = Depends(get_db)):
     city = crud.delete_city(db, city_id)
     if not city:
         raise HTTPException(status_code=404, detail="City not found")
     return {"message": "City deleted"}
+
+
+@router.put("/{city_id}", response_model=schemas.City)
+def update_city(
+    city_id: int, city_update: schemas.CityCreate, db: Session = Depends(get_db)
+):
+    city = crud.update_city(db, city_id, city_update)
+    if not city:
+        raise HTTPException(status_code=404, detail="City not found")
+    return city

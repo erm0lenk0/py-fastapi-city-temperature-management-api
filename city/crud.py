@@ -14,12 +14,25 @@ def create_city(db: Session, city: schemas.CityCreate):
 def get_cities(db: Session):
     return db.query(models.City).all()
 
+
 def get_city(db: Session, city_id: int):
     return db.query(models.City).filter(models.City.id == city_id).first()
+
 
 def delete_city(db: Session, city_id: int):
     city = get_city(db, city_id)
     if city:
         db.delete(city)
         db.commit()
+    return city
+
+
+def update_city(db: Session, city_id: int, city_update: schemas.CityCreate):
+    city = get_city(db, city_id)
+    if not city:
+        return None
+    city.name = city_update.name
+    city.additional_info = city_update.additional_info
+    db.commit()
+    db.refresh(city)
     return city
