@@ -126,7 +126,7 @@ Temperature history is stored in the database and accessible via endpoints.
 Error handling is basic (e.g., 404 when city is missing; empty list [] when no temperature records exist).
 No authentication or advanced business logic implemented, as this is a learning assignment.
 
-### Known limitations:
- - Database operations are synchronous; for production use, async SQLAlchemy should be used.
- - Duplicate city names are handled gracefully with 409 Conflict.
- - Redundant endpoint /temperatures/by_city/{city_id} removed in favor of query parameter filtering.
+### Known limitations
+- Database operations are synchronous. FastAPI runs them in a thread pool, but for full non-blocking behavior you should use AsyncSession with an async driver (e.g., aiosqlite).
+- Duplicate city names are handled gracefully with 409 Conflict.
+- Redundant endpoint /temperatures/by_city/{city_id} removed in favor of query parameter filtering.

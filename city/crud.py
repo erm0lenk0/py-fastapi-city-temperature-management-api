@@ -33,12 +33,23 @@ def delete_city(db: Session, city_id: int):
     return city
 
 
+from fastapi import HTTPException
+
 def update_city(db: Session, city_id: int, city_update: schemas.CityCreate):
     city = get_city(db, city_id)
     if not city:
         return None
+
+    existing_city = db.query(models.City).filter(models.City.name == city_update.name).first()
+    if existing_city and existing_city.id != city_id:
+        raise HTTPException(
+            status_code=409,
+            detail=f"City with name '{city_update.name}' already exists"
+        )
+
     city.name = city_update.name
     city.additional_info = city_update.additional_info
     db.commit()
     db.refresh(city)
     return city
+

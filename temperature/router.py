@@ -38,7 +38,7 @@ def read_temperature(
     db: Session = Depends(get_db),
 ):
     if city_id is not None:
-        records = crud.get_temperature_by_city(db, city_id, skip=skip, limit=limit)
+        records = crud.get_temperatures_by_city(db, city_id, skip=skip, limit=limit)
         return records
     return crud.get_temperature(db, skip=skip, limit=limit)
 
