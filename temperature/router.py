@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 from db.engine import SessionLocal
 from city import models as city_models
 from . import crud, schemas
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv("OPENWEATHER_API_KEY")
+
 
 router = APIRouter(prefix="/temperatures", tags=["temperatures"])
 
@@ -33,25 +39,10 @@ def read_temperature(
 ):
     if city_id is not None:
         records = crud.get_temperature_by_city(db, city_id, skip=skip, limit=limit)
-        if not records:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No temperature records found for city {city_id}",
-            )
         return records
     return crud.get_temperature(db, skip=skip, limit=limit)
 
 
-@router.get("/by_city/{city_id}", response_model=list[schemas.Temperature])
-def read_temperature_by_city(
-    city_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-):
-    records = crud.get_temperature_by_city(db, city_id, skip=skip, limit=limit)
-    if not records:
-        raise HTTPException(
-            status_code=404, detail=f"No temperature records found for city {city_id}"
-        )
-    return records
 
 
 @router.post("/update")
@@ -60,9 +51,13 @@ async def update_temperature(db: Session = Depends(get_db)):
     if not cities:
         raise HTTPException(status_code=404, detail="No cities found in database")
 
+    new_records = []
+
     async with httpx.AsyncClient() as client:
         for city in cities:
-            api_key = "91b6e3629ffeb604315deaea2b739d7e"
+            if not api_key:
+                raise HTTPException(status_code=500, detail="OpenWeather API key not configured")
+
             url = f"http://api.openweathermap.org/data/2.5/weather?q={city.name}&appid={api_key}&units=metric"
 
             response = await client.get(url)
@@ -72,13 +67,16 @@ async def update_temperature(db: Session = Depends(get_db)):
             data = response.json()
             temp_value = data["main"]["temp"]
 
-            crud.create_temperature(
-                db,
-                schemas.TemperatureCreate(
+            new_records.append(
+                crud.models.Temperature(
                     city_id=city.id,
                     date_time=datetime.datetime.utcnow(),
                     temperature=temp_value,
-                ),
+                )
             )
 
-        return {"message": "Temperature updated successfully"}
+    # Добавляем все новые записи и коммитим один раз
+    db.add_all(new_records)
+    db.commit()
+
+    return {"message": f"Temperature updated successfully for {len(new_records)} cities"}

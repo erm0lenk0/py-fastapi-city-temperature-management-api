@@ -1,9 +1,15 @@
 from sqlalchemy.orm import Session
-
+from fastapi import HTTPException
 from . import models, schemas
 
 
 def create_city(db: Session, city: schemas.CityCreate):
+    existing_city = db.query(models.City).filter(models.City.name == city.name).first()
+    if existing_city:
+        raise HTTPException(
+            status_code=409,
+            detail=f"City with name '{city.name}' already exists"
+        )
     db_city = models.City(name=city.name, additional_info=city.additional_info)
     db.add(db_city)
     db.commit()
